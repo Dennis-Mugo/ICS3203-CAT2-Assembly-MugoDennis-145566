@@ -1,113 +1,74 @@
 section .data
-array db 1, 2, 3, 4       ; Array to reverse
-array_len equ $ - array    ; Length of the array (4)
-newline db 10, 0           ; Newline character for output
+    prompt db "Enter 5 integers:", 0
+    newline db 0xA, 0   ; Newline for output formatting
+
+section .bss
+    array resd 5        ; Reserve space for 5 integers
 
 section .text
-global _start
+    global _start
 
 _start:
-    ; Reverse the array in-place
-    xor rsi, rsi             ; rsi = start index (0)
-    mov rdi, array_len       ; rdi = end index (array_len - 1)
-    dec rdi                  ; Adjust for 0-based indexing
+    ; Print prompt message
+    mov eax, 4          ; sys_write system call
+    mov ebx, 1          ; file descriptor 1 (stdout)
+    mov ecx, prompt     ; pointer to prompt string
+    mov edx, 18         ; length of prompt string
+    int 0x80            ; make system call
 
-.reverse_loop:
-    cmp rsi, rdi             ; Check if start index >= end index
-    jge .done_reverse        ; Exit loop if done
+    ; Read input from user
+    mov ecx, array      ; pointer to the array
+    mov edx, 5          ; number of integers to read
 
-    ; Swap array[rsi] and array[rdi]
-    mov al, [array + rsi]    ; Load array[rsi] into al
-    mov bl, [array + rdi]    ; Load array[rdi] into bl
-    mov [array + rsi], bl    ; Store bl into array[rsi]
-    mov [array + rdi], al    ; Store al into array[rdi]
+input_loop:
+    mov eax, 3          ; sys_read system call
+    mov ebx, 0          ; file descriptor 0 (stdin)
+    int 0x80            ; make system call
+    add ecx, 4          ; move to the next integer in array
+    dec edx             ; decrement the number of integers to read
+    jnz input_loop      ; repeat until 5 integers are read
 
-    ; Update indices
-    inc rsi                  ; Increment start index
-    dec rdi                  ; Decrement end index
-    jmp .reverse_loop        ; Repeat loop
+    ; Reverse the array in place using a loop
+    mov esi, 0          ; start index (i = 0)
+    mov edi, 4          ; end index (j = 4)
+    lea ebx, [array]    ; load address of array into ebx
 
-.done_reverse:
-    ; Output only the first element of the reversed array
-    mov al, [array]          ; Load the first element of the array into al
-    add al, '0'              ; Convert the number to ASCII
-    mov rsi, rsp             ; Use stack for temporary storage
-    sub rsp, 1               ; Allocate space for 1 character
-    mov [rsp], al            ; Store the ASCII character in memory
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, rsp             ; Address of the ASCII character
-    mov rdx, 1               ; Write one character
-    syscall
-    add rsp, 1               ; Clean up the stack
+reverse_loop:
+    ; Compare if the start index is less than the end index
+    cmp esi, edi
+    jge done_reversing
 
-    ; Print a newline for better formatting
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, newline         ; Address of the newline character
-    mov rdx, 1               ; Write one character
-    syscall
+    ; Swap array[esi] and array[edi]
+    mov eax, [ebx + esi*4]  ; load array[esi] into eax
+    mov edx, [ebx + edi*4]  ; load array[edi] into edx
+    mov [ebx + esi*4], edx  ; store value of array[edi] into array[esi]
+    mov [ebx + edi*4], eax  ; store value of array[esi] into array[edi]
 
+    ; Increment start index (esi) and decrement end index (edi)
+    inc esi
+    dec edi
+    jmp reverse_loop
+
+
+
+done_reversing:
+    mov edx, 3          ; number of integers to print
+    lea ecx, [array]    ; load address of array into ecx
     
-    mov al, [array + 1]          ; Load the second element of the array into al
-    add al, '0'              ; Convert the number to ASCII
-    mov rsi, rsp             ; Use stack for temporary storage
-    sub rsp, 1               ; Allocate space for 1 character
-    mov [rsp], al            ; Store the ASCII character in memory
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, rsp             ; Address of the ASCII character
-    mov rdx, 1               ; Write one character
-    syscall
-    add rsp, 1               ; Clean up the stack
-
-    ; Print a newline for better formatting
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, newline         ; Address of the newline character
-    mov rdx, 1               ; Write one character
-    syscall
-
-    mov al, [array + 2]          ; Load the third element of the array into al
-    add al, '0'              ; Convert the number to ASCII
-    mov rsi, rsp             ; Use stack for temporary storage
-    sub rsp, 1               ; Allocate space for 1 character
-    mov [rsp], al            ; Store the ASCII character in memory
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, rsp             ; Address of the ASCII character
-    mov rdx, 1               ; Write one character
-    syscall
-    add rsp, 1               ; Clean up the stack
-
-    ; Print a newline for better formatting
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, newline         ; Address of the newline character
-    mov rdx, 1               ; Write one character
-    syscall
-
-    mov al, [array + 3]          ; Load the fourth element of the array into al
-    add al, '0'              ; Convert the number to ASCII
-    mov rsi, rsp             ; Use stack for temporary storage
-    sub rsp, 1               ; Allocate space for 1 character
-    mov [rsp], al            ; Store the ASCII character in memory
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, rsp             ; Address of the ASCII character
-    mov rdx, 1               ; Write one character
-    syscall
-    add rsp, 1               ; Clean up the stack
-
-    ; Print a newline for better formatting
-    mov rax, 1               ; Syscall for write
-    mov rdi, 1               ; File descriptor (stdout)
-    mov rsi, newline         ; Address of the newline character
-    mov rdx, 1               ; Write one character
-    syscall
 
 
-    ; Exit the program
-    mov rax, 60              ; Syscall for exit
-    xor rdi, rdi             ; Exit code 0
-    syscall
+output_loop:
+    
+    mov eax, 4          ; sys_write system call
+    mov ebx, 1          ; file descriptor 1 (stdout)
+    int 0x80            ; make system call
+    add ecx, 4          ; move to the next integer in array
+    jmp output_loop     ; repeat until all integers are printed
+
+      
+
+
+done_output:
+    mov eax, 1          ; sys_exit system call
+    xor ebx, ebx        ; exit code 0
+    int 0x80            ; make system call
